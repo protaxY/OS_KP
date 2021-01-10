@@ -1,6 +1,6 @@
 #include <iostream>
 #include <cassert>
-#include <time.h>
+#include <ctime>
 
 #include "Memory.h"
 

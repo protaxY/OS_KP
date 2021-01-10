@@ -35,7 +35,7 @@ struct Page{
 class Memory{
 private:
     int PageSize;
-    int LogPageSize = log2(PageSize);
+    int LogPageSize;
     int MemorySize;
     int VirtualSize;
     char* VirtualMemoryFilePath;
