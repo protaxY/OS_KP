@@ -1,7 +1,3 @@
-//
-// Created by protaxy on 12/27/20.
-//
-
 #ifndef OS_KP_MEMORY_H
 #define OS_KP_MEMORY_H
 
@@ -24,19 +20,16 @@ struct PageNote{
     long long LastWrite = -1;
     int RealMemoryPlace = -1;
     bool Loaded = false;
-    //bool Allocated = false;
+    int Allocated = 0;
 };
 
 struct Page{
     int PageSize;
     void* Data;
+    //std::vector<bool> AllocatedBytes;
     Page(){
         PageSize = 0;
         Data = nullptr;
-    }
-    Page(int size){
-        PageSize = size;
-        Data = malloc(size);
     }
 };
 
@@ -46,11 +39,11 @@ private:
     int LogPageSize = log2(PageSize);
     int MemorySize;
     int VirtualSize;
-    char* virtualMemoryFilePath;
+    char* VirtualMemoryFilePath;
     Page* RealMemory;
     std::vector<PageNote> Pages;
+    std::vector<bool> AllocatedBytes;
     long long cnt = 0;
-    int SwapPageType = -1;
 
     void SwapPage(int newPage){
         int candidate = -1;
@@ -71,7 +64,7 @@ private:
             }
         }
 
-        int id = open("swapFile", O_RDWR);
+        int id = open(VirtualMemoryFilePath, O_RDWR);
 
         lseek(id, candidate * PageSize, 0);
         write(id, RealMemory[Pages[candidate].RealMemoryPlace].Data, PageSize);
@@ -98,7 +91,11 @@ public:
         MemorySize = memorySize;
         VirtualSize = virtualSize;
         LogPageSize = log2(PageSize);
-
+        AllocatedBytes.resize(virtualSize);
+        VirtualMemoryFilePath = virtualMemoryFilePath;
+        for (int i = 0; i < AllocatedBytes.size(); ++i){
+            AllocatedBytes[i] = false;
+        }
         Pages.resize(virtualSize / PageSize);
         for (int i = 0; i < memorySize / PageSize; ++i){
             Pages[i].Loaded = true;
@@ -113,7 +110,7 @@ public:
             RealMemory[i].Data = malloc(pageSize);
         }
 
-        FILE* swapFile = fopen("swapFile", "wb");
+        FILE* swapFile = fopen(VirtualMemoryFilePath, "wb");
         if (swapFile == NULL){
             std::cout << "fopen error\n";
         }
@@ -127,54 +124,50 @@ public:
         fclose(swapFile);
     }
 
-//    void* Allocate(int address, int bytesSize){
-//        for (int i = 0; i < Pages.size(); ++i){
-//            if (Pages[i].Allocated == false){
-//
-//            }
-//        }
-//    }
+    int Allocate(int bytesSize){
+        bool success = false;
+        int result;
+        for (int i = 0; i < Pages.size(); ++i){
+            if (PageSize - Pages[i].Allocated >= bytesSize){
+                Pages[i].Allocated += bytesSize;
+                success = true;
+                result = i * PageSize + Pages[i].Allocated - bytesSize;
+                return result;
+            }
+        }
+        if (!success){
+            std::cout << "nowhere to allocate\n";
+            return -1;
+        }
+    }
 
     void* Read(int address, int bytesSize){
         void* result = malloc(bytesSize);
-        if (Pages[(long) address >> LogPageSize].Loaded){
-            memcpy(result,
-                   (void*)((char*)RealMemory[Pages[(long) address >> LogPageSize].RealMemoryPlace].Data + ((long) address & (1l << LogPageSize) - 1)),
-                   bytesSize);
-            ++cnt;
-            return result;
-        } else {
+        if (!(Pages[(long) address >> LogPageSize].Loaded)){
             SwapPage((long) address >> LogPageSize);
             if (!Pages[(long) address >> LogPageSize].Loaded){
                 std::cout << "oops\n";
-                return 0;
+                return nullptr;
             }
-            memcpy(result,
-                   (void*)((char*)RealMemory[Pages[(long) address >> LogPageSize].RealMemoryPlace].Data + ((long) address & (1l << LogPageSize) - 1)),
-                   bytesSize);
-            return result;
         }
+        memcpy(result,
+               (void*)((char*)RealMemory[Pages[(long) address >> LogPageSize].RealMemoryPlace].Data + ((long) address & (1l << LogPageSize) - 1)),
+               bytesSize);
+        Pages[(long) address >> LogPageSize].LastRead = cnt;
         ++cnt;
+        return result;
     }
     void Write(int address, void* val, int bytesSize){
-//        long long a = (long) address >> PageSize;
-//        if (Pages[a].Loaded){
-//            std::cout << "hi\n";
-//        }
-        if (Pages[((long) address >> LogPageSize)].Loaded){
-            memcpy((void*)((char*)RealMemory[Pages[(long) address >> LogPageSize].RealMemoryPlace].Data + ((long) address & ((long) address & (1l << LogPageSize) - 1))),
-                val, bytesSize);
-            ++cnt;
-            return;
-        } else {
+        if (!(Pages[((long) address >> LogPageSize)].Loaded)){
             SwapPage((long) address >> LogPageSize);
             if (!Pages[(long) address >> LogPageSize].Loaded){
                 std::cout << "oops\n";
                 return;
             }
-            memcpy((void*)((char*)RealMemory[Pages[(long) address >> LogPageSize].RealMemoryPlace].Data + ((long) address & ((long) address & (1l << LogPageSize) - 1))),
-                   val, bytesSize);
         }
+        memcpy((void*)((char*)RealMemory[Pages[(long) address >> LogPageSize].RealMemoryPlace].Data + ((long) address & ((long) address & (1l << LogPageSize) - 1))),
+               val, bytesSize);
+        Pages[(long) address >> LogPageSize].LastWrite = cnt;
         ++cnt;
     }
 };

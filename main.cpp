@@ -6,14 +6,18 @@
 
 int main(int argc, char** argv){
     void* mem;
-    Memory memory(mem, 1 * sizeof(long), 4 * sizeof(long), 64 * sizeof(long), "lol");
+    Memory memory(mem, 4 * sizeof(int), 16 * sizeof(int), 64 * sizeof(int), "lol");
+    std::vector<int> customPointers(64, 0);
     for (int i = 0; i < 64; ++i){
-        long tmp = i;
-        memory.Write(i * sizeof(long), &tmp, sizeof(long));
+        customPointers[i] = memory.Allocate(sizeof(int));
     }
-    for (int i = 0; i < 64; ++i){
-        long* tmp = (long*)memory.Read(i * sizeof(long), sizeof(long));
-        std::cout << *tmp << "\n";
+    for(int i = 0; i < customPointers.size(); ++i){
+        int tmp = i;
+        memory.Write(customPointers[i], &tmp, sizeof(int));
+    }
+    for (int i = 0; i < customPointers.size(); ++i){
+        int* tmp = (int*) memory.Read(customPointers[i], sizeof(int));
+        std::cout << *tmp << " ";
     }
     return 0;
 }
