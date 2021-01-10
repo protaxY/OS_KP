@@ -5,17 +5,15 @@
 #include "Memory.h"
 
 int main(int argc, char** argv){
-    assert(argc == 2);
-    Memory memory(atoi(argv[1]));
-    std::srand(time(NULL));
-    for (int i = 0; i < 64 * 4; ++i){
-        int a = rand() % 16 + 1;
-        memory.Write(i, a);
-        std::cout << a << " ";
+    void* mem;
+    Memory memory(mem, 1 * sizeof(long), 4 * sizeof(long), 64 * sizeof(long), "lol");
+    for (int i = 0; i < 64; ++i){
+        long tmp = i;
+        memory.Write(i * sizeof(long), &tmp, sizeof(long));
     }
-    std::cout << "\n";
-    for (int i = 0; i < 64 * 4; ++i){
-        std::cout << memory.Read(i) << " ";
+    for (int i = 0; i < 64; ++i){
+        long* tmp = (long*)memory.Read(i * sizeof(long), sizeof(long));
+        std::cout << *tmp << "\n";
     }
     return 0;
 }
