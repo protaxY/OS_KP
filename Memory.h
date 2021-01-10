@@ -11,7 +11,7 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <cstring>
-#include <math.h>
+#include <cmath>
 
 long long timer = 8;
 
@@ -26,7 +26,6 @@ struct PageNote{
 struct Page{
     int PageSize;
     void* Data;
-    //std::vector<bool> AllocatedBytes;
     Page(){
         PageSize = 0;
         Data = nullptr;
@@ -42,7 +41,6 @@ private:
     char* VirtualMemoryFilePath;
     Page* RealMemory;
     std::vector<PageNote> Pages;
-    std::vector<bool> AllocatedBytes;
     long long cnt = 0;
 
     void SwapPage(int newPage){
@@ -86,16 +84,12 @@ private:
     }
 
 public:
-    Memory(void* memory, int pageSize, int memorySize, int virtualSize, char* virtualMemoryFilePath){
+    Memory(int pageSize, int memorySize, int virtualSize, char* virtualMemoryFilePath){
         PageSize = pageSize;
         MemorySize = memorySize;
         VirtualSize = virtualSize;
         LogPageSize = log2(PageSize);
-        AllocatedBytes.resize(virtualSize);
         VirtualMemoryFilePath = virtualMemoryFilePath;
-        for (int i = 0; i < AllocatedBytes.size(); ++i){
-            AllocatedBytes[i] = false;
-        }
         Pages.resize(virtualSize / PageSize);
         for (int i = 0; i < memorySize / PageSize; ++i){
             Pages[i].Loaded = true;
@@ -116,10 +110,8 @@ public:
         }
 
         for (int i = 0; i < virtualSize; ++i){
-            for (int j = 0; j < pageSize; ++j){
-                char tmp = 0;
-                fwrite(&tmp, sizeof(char), 1, swapFile);
-            }
+            char tmp = 0;
+            fwrite(&tmp, sizeof(char), 1, swapFile);
         }
         fclose(swapFile);
     }
@@ -172,9 +164,9 @@ public:
     }
 };
 
-//Memory CreateMemory(void* memory, int pageSize, int memorySize, int virtualSize, char* virtualMemoryFilePath){
-//    Memory res;
-//    res(memory, pageSize, memorySize, virtualSize, virtualMemoryFilePath);
-//}
+Memory CreateMemory(int pageSize, int memorySize, int virtualSize, char* virtualMemoryFilePath){
+    Memory res(pageSize, memorySize, virtualSize, virtualMemoryFilePath);
+    return res;
+}
 
 #endif //OS_KP_MEMORY_H
