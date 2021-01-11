@@ -134,6 +134,9 @@ public:
     }
 
     void* Read(int address, int bytesSize){
+        if (Pages[(long) address >> LogPageSize].Allocated < ((long) address & (1l << LogPageSize) - 1) + bytesSize){
+            std::cout << "this memory block is not allcoated\n";
+        }
         void* result = malloc(bytesSize);
         if (!(Pages[(long) address >> LogPageSize].Loaded)){
             SwapPage((long) address >> LogPageSize);
@@ -150,6 +153,9 @@ public:
         return result;
     }
     void Write(int address, void* val, int bytesSize){
+        if (Pages[(long) address >> LogPageSize].Allocated < ((long) address & (1l << LogPageSize) - 1) + bytesSize){
+            std::cout << "this memory block is not allcoated\n";
+        }
         if (!(Pages[((long) address >> LogPageSize)].Loaded)){
             SwapPage((long) address >> LogPageSize);
             if (!Pages[(long) address >> LogPageSize].Loaded){
